@@ -1,5 +1,9 @@
+/* jshint strict: true, undef: true */
+/* global window */
 // Animator
 var mator = (function() {
+  "use strict";
+  
   var requestFrame = (function() {
     return  window.requestAnimationFrame       ||
             window.webkitRequestAnimationFrame ||
@@ -7,7 +11,7 @@ var mator = (function() {
             fallback();
     
     function fallback() {
-      var start = +new Date()
+      var start = +new Date();
       return function fallbackAnimationFrame(callback) {
         window.setTimeout(function() {
           callback.call(this, (+new Date()) - start);
@@ -21,33 +25,39 @@ var mator = (function() {
     easing = easing || fn.easing.linear;
     
     var updates = [];
-    var completed = false, start, worker = function(now) {
-      var ctx, percent, elasped, val,i,l;
+    var ctx, completed = false, start, worker = function(now) {
+      var percent, elapsed, val,i,l;
       
       if(!start) start = now;
       
       elapsed = now - start;
-      if(elapsed > total) completed=true, elapsed=total;
+      
+      if(elapsed > total) {
+        completed=true;
+        elapsed=total;
+      }
+      
       percent = elapsed/total;
       val = easing(percent, elapsed, 0, 1, total);
       
       for(i=0,l=updates.length;i<l;i++) updates[i](val);
       
       if(!completed) return requestFrame(worker);
-    }
+    };
     
-    return ctx = {
+    ctx = {
       start: function() { requestFrame(worker); return ctx; },
       reset: function() { completed = false; start = undefined; return ctx; },
       restart: function() { return ctx.reset().start(); },
       update: function(fn, start, end, tr) {
         var transformed = tr ? function(val) { fn(tr(val)); } : fn;
-        var result = (start != null) && (end != null) ?
+        var result = (start !== undefined) && (end !== undefined) ?
             function(val) { transformed(val*(end-start)+start); } : transformed;
         updates.push(result);
         return ctx;
       }
     };
+    return ctx;
   };
   
   var toUnits = function(units) { return function(v) { return v+units; }; };
@@ -64,6 +74,7 @@ var mator = (function() {
   };
                
   // Easing functions.
+  /* jshint ignore:start */
   fn.easing = (function() {
     var quad = {
       in: function (n,e,t,a,r) { return a*(e/=r)*e+t; },
@@ -76,6 +87,7 @@ var mator = (function() {
       "quad": quad
     };
   }());
+  /* jshint ignore:end */
   
   return fn;
 }());
